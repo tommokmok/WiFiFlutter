@@ -19,6 +19,7 @@ import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.Build;
+import android.util.Log;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -34,9 +35,11 @@ import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
 
+import androidx.annotation.RequiresApi;
 import info.whitebyte.hotspotmanager.ClientScanResult;
 import info.whitebyte.hotspotmanager.FinishScanListener;
 import info.whitebyte.hotspotmanager.WifiApManager;
+import io.flutter.plugin.common.BinaryMessenger;
 import io.flutter.plugin.common.EventChannel;
 import io.flutter.plugin.common.MethodCall;
 import io.flutter.plugin.common.MethodChannel;
@@ -49,19 +52,30 @@ import io.flutter.view.FlutterNativeView;
 /**
  * WifiIotPlugin
  */
+@RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
 public class WifiIotPlugin implements MethodCallHandler, EventChannel.StreamHandler {
+    final String TAG="WifiIotPlugin";
     private WifiManager moWiFi;
     private Context moContext;
     private WifiApManager moWiFiAPManager;
     private Activity moActivity;
     private BroadcastReceiver receiver;
     private List<String> ssidsToBeRemovedOnExit = new ArrayList<String>();
+    //For the network callback
+    private SimpleNetworkCallbackImpl networkCallback;
+    private NetworkCallbackReceiver netReceiver;
+    static NetworkRequest.Builder builder = new NetworkRequest.Builder();
+    static NetworkRequest request = builder.build();
+    static  ConnectivityManager connMgr;
 
     private WifiIotPlugin(Activity poActivity) {
         this.moActivity = poActivity;
         this.moContext = poActivity.getApplicationContext();
         this.moWiFi = (WifiManager) moContext.getApplicationContext().getSystemService(Context.WIFI_SERVICE);
         this.moWiFiAPManager = new WifiApManager(moContext.getApplicationContext());
+
+        this.networkCallback= new SimpleNetworkCallbackImpl(poActivity.getApplicationContext());
+        this.netReceiver=new NetworkCallbackReceiver(poActivity.getApplicationContext());
     }
 
     /**
@@ -78,6 +92,10 @@ public class WifiIotPlugin implements MethodCallHandler, EventChannel.StreamHand
         final WifiIotPlugin wifiIotPlugin = new WifiIotPlugin(registrar.activity());
         eventChannel.setStreamHandler(wifiIotPlugin);
         channel.setMethodCallHandler(wifiIotPlugin);
+
+
+
+
 
         registrar.addViewDestroyListener(new ViewDestroyListener() {
             @Override
@@ -98,8 +116,21 @@ public class WifiIotPlugin implements MethodCallHandler, EventChannel.StreamHand
         });
     }
 
+    private void setupNetworkEventChannels(BinaryMessenger messenger, Context context) {
+        final EventChannel networkEventChannel = new EventChannel(messenger, "plugins.wififlutter.io/networkEvent");
+        networkEventChannel.setStreamHandler(netReceiver);
+        //Register the network callback;
+        connMgr= (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+        if (connMgr != null) {
+            Log.i("ConnectivityManager", "registerWith: ");
+            connMgr.registerNetworkCallback(request, networkCallback);
+        }
+    }
+
+
     @Override
     public void onMethodCall(MethodCall poCall, Result poResult) {
+//        Log.i("Custom", "onMethodCall:");
         switch (poCall.method) {
             case "loadWifiList":
                 loadWifiList(poResult);
@@ -123,6 +154,7 @@ public class WifiIotPlugin implements MethodCallHandler, EventChannel.StreamHand
                 isConnected(poResult);
                 break;
             case "disconnect":
+                Log.i("Custom", "onMethodCall: disconnect");
                 disconnect(poResult);
                 break;
             case "getSSID":
