@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.net.ConnectivityManager;
 import android.os.Build;
+import android.util.Log;
 
 import java.util.HashMap;
 
@@ -27,20 +28,25 @@ public class NetworkCallbackReceiver extends BroadcastReceiver
         if (events != null) {
             final String action = intent.getAction();
             if (SimpleNetworkCallbackImpl.NETWORK_ON_LINK_CHANGE_ACTION.equals(action)){
+//                Log.i("To Flutter Stream", "onReceive:NETWORK_ON_LINK_CHANGE_ACTION ");
                 final String hostAddr = intent.getStringExtra("data");
-                final String eventType = intent.getStringExtra(SimpleNetworkCallbackImpl.ON_LINK_CHANGED_EVT);
+                final String eventType = intent.getStringExtra("EvtType");
                 HashMap<String, String> data = new HashMap<>();
+
                 data.put("EvtType", eventType);
                 data.put("data", hostAddr);
+//                Log.i("To Flutter Stream","Send to flutter : Data:"+data);
                 events.success(data);
 
             }
             if (SimpleNetworkCallbackImpl.NETWORK_ON_LINK_LOST_ACTION.equals(action)){
+//                Log.i("To Flutter Stream", "onReceive:NETWORK_ON_LINK_LOST_ACTION ");
                 final String hostAddr = intent.getStringExtra("data");
-                final String eventType = intent.getStringExtra(SimpleNetworkCallbackImpl.ON_LOST_EVT);
+                final String eventType = intent.getStringExtra("EvtType");
                 HashMap<String, String> data = new HashMap<>();
                 data.put("EvtType", eventType);
                 data.put("data", hostAddr);
+//                Log.i("To Flutter Stream","Send to flutter : Data:"+data);
                 events.success(data);
 
             }
@@ -50,6 +56,7 @@ public class NetworkCallbackReceiver extends BroadcastReceiver
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     @Override
     public void onListen(Object arguments, EventChannel.EventSink events) {
+        Log.i("To Flutter Stream", "onListen ");
         this.events = events;
         context.registerReceiver(this,makeIntentFilter());
     }

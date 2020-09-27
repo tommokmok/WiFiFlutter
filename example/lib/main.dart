@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:wifi_iot/wifi_iot.dart';
@@ -29,6 +31,13 @@ class _FlutterWifiIoTState extends State<FlutterWifiIoT> {
   bool _isWiFiAPEnabled = false;
   bool _isWiFiAPSSIDHidden = false;
   bool _isWifiAPSupported = true;
+  StreamSubscription _networkState;
+
+  @override
+  dispose() {
+    _networkState?.cancel();
+    super.dispose();
+  }
 
   @override
   initState() {
@@ -55,6 +64,25 @@ class _FlutterWifiIoTState extends State<FlutterWifiIoT> {
         _isWiFiAPSSIDHidden = val;
       }
     }).catchError((val) => _isWifiAPSupported = false);
+
+    _networkState = WiFiForIoTPlugin.networkStream.listen(
+      (event) {
+        print('[WiFiForIoTPlugin.networkStream]  _onEvent');
+        var data = Map<String, String>.from(event);
+        print('Received data from android: $data');
+        if (data['EvtType'] == 'onLost') {
+          print('[WiFiForIoTPlugin.networkStream] on Lost ');
+        } else if (data['EvtType'] == 'onLinkChanged') {
+          print(
+              '[WiFiForIoTPlugin.networkStream] onLinkChanged: Ip=${data['data']}');
+        } else {
+          print("[WiFiForIoTPlugin.networkStream]Other Evt Type");
+        }
+      },
+      onError: (error) {
+        print("[WiFiForIoTPlugin.networkStream] on Error");
+      },
+    );
 
     super.initState();
   }

@@ -92,6 +92,7 @@ public class WifiIotPlugin implements MethodCallHandler, EventChannel.StreamHand
         final WifiIotPlugin wifiIotPlugin = new WifiIotPlugin(registrar.activity());
         eventChannel.setStreamHandler(wifiIotPlugin);
         channel.setMethodCallHandler(wifiIotPlugin);
+        wifiIotPlugin.setupNetworkEventChannels(registrar.messenger(),registrar.context());
 
 
 

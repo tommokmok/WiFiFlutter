@@ -17,6 +17,8 @@ enum NetworkSecurity { WPA, WEP, NONE }
 const MethodChannel _channel = const MethodChannel('wifi_iot');
 const EventChannel _eventChannel =
     const EventChannel('plugins.wififlutter.io/wifi_scan');
+const EventChannel _networkChannel=
+    const EventChannel("plugins.wififlutter.io/networkEvent");
 
 class WiFiForIoTPlugin {
   static Future<bool> isWiFiAPEnabled() async {
@@ -146,6 +148,9 @@ class WiFiForIoTPlugin {
           .map((dynamic event) => WifiNetwork.parse(event));
     }
     return _onWifiScanResultReady;
+  }
+  static Stream<dynamic> get networkStream{
+      return _networkChannel.receiveBroadcastStream();
   }
 
   static Future<List<WifiNetwork>> _loadWifiList() async {
